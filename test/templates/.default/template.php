@@ -2,27 +2,23 @@
 if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die(); 
 ?>
 <?php if (count($arResult['FROM_JSON']) > 0): ?>
-
     <table>
-        <thead>
-        <tr>
-            <th><?php echo implode('</th><th>', array_keys(current($arResult['TABLE_RESULT']))); ?></th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($arResult['FROM_JSON'] as $row): array_map('htmlentities', $row); ?>
-            <tr>
-                <td><?php echo implode('</td><td>', $row); ?></td>
-                <td><a href="?userId=<?=$row['userId']?> & title=<?=$row['title']?> & body=<?=$row['body']?>" >Добавить</td>
-            </tr>
-        <?php endforeach; ?>
-        <?php foreach ($arResult['TASKS'] as $row): array_map('htmlentities', $row); ?>
-            <tr>
-                <td><?php echo implode('</td><td>', $row); ?></td>
-                <td><a href="?ID=<?=$row['ID']?>" >Удалить</td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+    <?php foreach ($arResult['FROM_JSON'] as $items): ?>
+	<tr>
+		<?php foreach ($items as $row): ?>
+		<td><?php echo $row; ?></td>
+		<?php endforeach; ?>
+        <td><a href="?userId=<?=$row['userId']?> & title=<?=$row['title']?> & body=<?=$row['body']?>&action=add"  >Добавить</td>
+	</tr>
+	<?php endforeach; ?>
+	<?php foreach ($arResult['TASKS'] as $items): ?>
+	<tr>
+		<?php foreach ($items as $row): ?>
+		<td><?php echo $row; ?></td>
+		<?php endforeach; ?>
+        <td><a href="?ID=<?=$row['ID']?>&action=delete"  >Удалить</td>
+	</tr>
+	<?php endforeach; ?>
+</table>
 <?php endif; ?>
 

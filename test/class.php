@@ -3,7 +3,7 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 use \Bitrix\Main\Data\Cache;
 class Ctablica extends CBitrixComponent
 {
-    public $response;//данные подтянутые для таблицы
+    public $arResponse;//данные подтянутые для таблицы
     public $cache;// Служба кеширования
 
     public $cachePath = 'mycachepath'; // папка, в которой лежит кеш
@@ -34,15 +34,25 @@ class Ctablica extends CBitrixComponent
 
    function Request ()
    {
-       if (isset($_REQUEST['ID'])){
+       if ( $_REQUEST['action'] == 'delete' && isset($_REQUEST['ID'] )  ){
          $this->delete($_REQUEST['ID']);
        }
-       if (isset($_REQUEST['userId'],$_REQUEST['title'],$_REQUEST['body'])){
+       if ($_REQUEST['action'] == 'add' && isset($_REQUEST['userId'],$_REQUEST['title'],$_REQUEST['body'])){
         $this->addElement($_REQUEST['userId'],$_REQUEST['title'],$_REQUEST['body'],);
       }
    }
-
-   public function table()
+   public function getCache()
+   {
+       $this->cache=Cache::createInstance();
+       if ($this->cache->initCache($this->cacheTtl, $this->cacheKey, $this->cachePath)){//если есть кеш
+           $this->arResponse = $this->cache->getVars(); // Получаем переменные
+       }
+       elseif ($this->cache->startDataCache()){//если кеша нет
+           $this->getTable();
+           $this->cache->endDataCache($this->arResponse);
+       }
+   }
+   public function getTable()
    {
        $curl = curl_init();
        curl_setopt_array($curl, array(
@@ -55,57 +65,37 @@ class Ctablica extends CBitrixComponent
                "cache-control: no-cache"
            ),
        ));
-       $response = curl_exec($curl);
-       $this->response = json_decode($response, true); //because of true, it's in an array
+       $arResponse = curl_exec($curl);
+       $this->arResponse = json_decode($arResponse, true); //because of true, it's in an array
      //  array_push($response,"action");
    }
-
-    // public function Check()
-    // {
-    //     $rsItems = CIBlockElement::GetList(array(),array('IBLOCK_ID' =>'5','=NAME' => 'название'),false,false,array('ID'));
-    //     if ($arItem = $rsItems->GetNext())
-    //     {
-    //         // есть такой элемент
-    //     }
-    //     else
-    //     {
-    //     }
-    // }
     public function delete ($id)
     {
         CIBlockElement::Delete($id);
     }
-    public function Display()
+    public function getInfoblok()
     {
         CModule::IncludeModule('iblock');
         $result = CIBlockElement::GetList([], ['IBLOCK_ID' => 5], false, false, ['ID', 'NAME', 'PROPERTY_ID', 'PROPERTY_TITLE', 'PROPERTY_BODY']);
 
-        $tasks = [];
+        $arTasks = [];
         while ($element = $result->fetch()) {
-            $tasks[$element['ID']] = [
+            $arTasks[$element['ID']] = [
                 'NAME' => $element['NAME'],
                 'ID' => $element['ID'],
                 'TITLE' => $element['PROPERTY_TITLE_VALUE'],
                 'BODY' => $element['PROPERTY_BODY_VALUE'],
             ];
         }
-        $this->arResult['TASKS'] = $tasks;
+        $this->arResult['TASKS'] = $arTasks;
     }
 
     public function executeComponent()
     {
-        $this->Display();
-        $this->cache=Cache::createInstance();
-        if ($this->cache->initCache($this->cacheTtl, $this->cacheKey, $this->cachePath)){//если есть кеш
-            $this->response = $this->cache->getVars(); // Получаем переменные
-        }
-        elseif ($this->cache->startDataCache()){//если кеша нет
-            $this->table();
-            $this->cache->endDataCache($this->response);
-        }
-
+        $this->getInfoblok();
+        $this->getCache();
        // $this->arResult['TABLE_RESULT'] = array_merge($this->response,$this->arResult['TASKS']);
-        $this->arResult['FROM_JSON']= $this->response;
+        $this->arResult['FROM_JSON']= $this->arResponse;
         $this->IncludeComponentTemplate();
         $this->Request();
     }
